@@ -1,44 +1,52 @@
-use serde_json::Value;
-use std::fs;
-use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use rusqlite::Connection;
+use rusqlite::{params, OptionalExtension};
+use std::sync::{Mutex, OnceLock};
 
-fn get_app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))
-}
+// Usamos Mutex porque SQLite síncrono no puede ser accedido
+// por dos hilos al mismo tiempo sin protección.
+static DB_CONN: OnceLock<Mutex<Connection>> = OnceLock::new();
 
-#[tauri::command]
-pub fn save_settings(app: AppHandle, settings: Value) -> Result<(), String> {
-    let app_dir = get_app_data_dir(&app)?;
+pub fn init(path: &str) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(path)?;
 
-    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
-
-    let settings_path = app_dir.join("settings.json");
-    fs::write(settings_path, settings.to_string()).map_err(|e| e.to_string())?;
+    DB_CONN.set(Mutex::new(conn)).map_err(|_| {
+        rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error::new(1), // Código de error genérico
+            Some("La base de datos ya fue inicializada".to_string()),
+        )
+    })?;
 
     Ok(())
 }
 
-#[tauri::command]
-pub fn load_settings(app: AppHandle) -> Result<Value, String> {
-    let app_dir = get_app_data_dir(&app)?;
-    let settings_path = app_dir.join("settings.json");
-
-    if !settings_path.exists() {
-        return Ok(serde_json::json!({}));
-    }
-
-    let content = fs::read_to_string(settings_path).map_err(|e| e.to_string())?;
-
-    serde_json::from_str(&content).map_err(|e| e.to_string())
+// Helper para ejecutar querys sin retorno (INSERT, UPDATE)
+pub fn execute(query: &str, params: &[&dyn rusqlite::ToSql]) -> Result<usize, rusqlite::Error> {
+    let lock = DB_CONN.get().unwrap().lock().unwrap();
+    lock.execute(query, params)
 }
 
-pub fn init(app: &AppHandle) -> Result<(), String> {
-    let app_dir = get_app_data_dir(app)?;
+pub fn fetch_one<F, T>(
+    query: &str,
+    params: &[&dyn rusqlite::ToSql],
+    mapper: F,
+) -> Result<Option<T>, rusqlite::Error>
+where
+    F: FnOnce(&rusqlite::Row) -> Result<T, rusqlite::Error>,
+{
+    let lock = DB_CONN.get().unwrap().lock().unwrap(); // Tu Mutex global
 
-    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    // query_row intenta buscar 1 fila
+    let result = lock.query_row(query, params, mapper);
 
-    Ok(())
+    // .optional() convierte el error "QueryReturnedNoRows" en un Ok(None)
+    result.optional()
+}
+
+// Si necesitas acceso directo a la conexión para selects complejos
+pub fn access_db<F, T>(f: F) -> T
+where
+    F: FnOnce(&Connection) -> T,
+{
+    let lock = DB_CONN.get().unwrap().lock().unwrap();
+    f(&lock)
 }

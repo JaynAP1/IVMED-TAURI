@@ -7,7 +7,8 @@ export const authService = {
 
       if (result.success) {
         // Guardar datos del usuario y token
-        sessionStorage.setItem("user", JSON.stringify(result.data.user));
+        sessionStorage.setItem("name", result.data.user.name);
+        sessionStorage.setItem("role", result.data.user.role);
         sessionStorage.setItem("token", result.data.token);
         sessionStorage.setItem("isAuthenticated", "true");
       }
@@ -19,13 +20,24 @@ export const authService = {
     }
   },
 
+  async register(username, password) {
+    try {
+      const result = await api.call("register_user", { username, password });
+      return result;
+    } catch (error) {
+      console.error("Error register", error);
+      return { success: false, error: error.message };
+    }
+  },
+
   async logout() {
     try {
       const result = await api.call("logout_user");
 
       // Limpiar sesión
-      sessionStorage.removeItem("user");
       sessionStorage.removeItem("token");
+      sessionStorage.removeItem("role");
+      sessionStorage.removeItem("name");
       sessionStorage.removeItem("isAuthenticated");
 
       // Redirigir al login

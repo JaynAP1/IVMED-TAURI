@@ -154,7 +154,7 @@ body {
 
 .remember-forgot {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 24px;
     font-size: 14px;

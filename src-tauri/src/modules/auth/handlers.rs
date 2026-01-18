@@ -1,9 +1,9 @@
 use super::models::{LoginRequest, LoginResponse, User};
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
+use crate::modules::storage::db;
+use bcrypt::{hash, verify, DEFAULT_COST};
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State};
-
-// Estado global para almacenar la sesión actual
+use tauri::{AppHandle, Manager, State}; // Importamos el acceso, NO el init
+                                        // Estado global para almacenar la sesión actual
 pub struct AuthState {
     pub current_user: Mutex<Option<User>>,
 }
@@ -22,45 +22,48 @@ pub fn login_user(
     password: String,
     state: State<AuthState>,
 ) -> Result<LoginResponse, String> {
-    // Validar que los campos no estén vacíos
+    // Validate params
     if username.is_empty() || password.is_empty() {
         return Err("Usuario y contraseña son requeridos".to_string());
     }
 
-    // TODO: Aquí deberías validar contra una base de datos
-    // Por ahora, validación simple de ejemplo
-    if username == "admin" && password == "admin123" {
-        let user = User {
-            id: "1".to_string(),
-            username: username.clone(),
-            email: format!("{}@ivmed.com", username),
-            role: "admin".to_string(),
-        };
+    let user_data = db::fetch_one(
+        "SELECT id, username, role, password, name, lastname FROM User WHERE username = ?1",
+        &[&username],
+        |row| {
+            let id: i32 = row.get(0)?;
+            let username: String = row.get(1)?;
+            let role: String = row.get(2)?;
+            let stored_hash: String = row.get(3)?;
+            let name: String = row.get(4)?;
+            let lastname: String = row.get(5)?;
+            Ok((role, stored_hash, name, lastname))
+        },
+    )
+    .map_err(|e| e.to_string())?;
 
-        // Guardar usuario en el estado
-        let mut current_user = state.current_user.lock().unwrap();
-        *current_user = Some(user.clone());
+    match user_data {
+        Some((role, stored_hash, name, lastname)) => {
+            let is_valid = verify(&password, &stored_hash).unwrap_or(false);
 
-        // Generar token simple (en producción usa JWT)
-        let token = generate_simple_token(&username);
+            if is_valid {
+                let user = User {
+                    name: format!("{} {}", name, lastname),
+                    role: role,
+                };
+                let token = generate_simple_token(&name);
 
-        Ok(LoginResponse { user, token })
-    } else if username == "a@gmail.com" && password == "doc123" {
-        let user = User {
-            id: "2".to_string(),
-            username: username.clone(),
-            email: format!("{}@ivmed.com", username),
-            role: "doctor".to_string(),
-        };
-
-        let mut current_user = state.current_user.lock().unwrap();
-        *current_user = Some(user.clone());
-
-        let token = generate_simple_token(&username);
-
-        Ok(LoginResponse { user, token })
-    } else {
-        Err("Usuario o contraseña incorrectos".to_string())
+                println!("Login exitoso para: {}", name);
+                Ok(LoginResponse { user, token })
+            } else {
+                println!("Password incorrecto para: {}", name);
+                Err("Usuario o contraseña incorrectos".to_string())
+            }
+        }
+        None => {
+            println!("Usuario no encontrado: {}", username);
+            Err("Usuario o contraseña incorrectos".to_string())
+        }
     }
 }
 
@@ -117,4 +120,17 @@ fn generate_simple_token(username: &str) -> String {
         .as_secs();
 
     format!("{}_{}", username, timestamp)
+}
+
+#[tauri::command]
+pub fn register_user(username: String, password: String) -> Result<(), String> {
+    let hashed_pass = hash(&password, DEFAULT_COST).map_err(|e| e.to_string())?;
+
+    db::execute(
+        "INSERT INTO User (username, password, role) VALUES (?1, ?2, 'admin')",
+        &[&username, &hashed_pass],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

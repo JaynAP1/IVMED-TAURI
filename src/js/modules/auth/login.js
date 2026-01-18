@@ -1,6 +1,7 @@
 import { authService } from "./authService.js";
 
 export function renderLogin() {
+  document.getElementById("login").disabled = false;
   const content = document.getElementById("content");
   content.innerHTML = `
     <div class="login-container">
@@ -24,19 +25,16 @@ export function renderLogin() {
 
         <form id="loginForm">
             <div class="input-group">
-                <label for="email" class="input-label"
-                    >Correo electrónico</label
+                <label for="user" class="input-label"
+                    >Nombre de usuario</label
                 >
                 <input
-                    type="email"
-                    id="email"
+                    type="text"
+                    id="user"
                     class="input-field"
-                    placeholder="tu@ejemplo.com"
+                    placeholder="usuario1"
                     required
                 />
-                <div class="error-message" id="emailError">
-                    Por favor ingresa un correo electrónico válido
-                </div>
             </div>
 
             <div class="input-group">
@@ -48,16 +46,12 @@ export function renderLogin() {
                     placeholder="••••••••"
                     required
                 />
-                <span class="password-toggle" id="passwordToggle">👁️</span>
                 <div class="error-message" id="passwordError">
                     La contraseña debe tener al menos 6 caracteres
                 </div>
             </div>
 
             <div class="remember-forgot">
-                <label class="remember-me">
-                    <input type="checkbox" id="rememberMe" /> Recordarme
-                </label>
                 <a href="#" class="forgot-password"
                     >¿Olvidaste tu contraseña?</a
                 >
@@ -67,33 +61,15 @@ export function renderLogin() {
                 Iniciar Sesión
             </button>
         </form>
-
-        <div class="divider">o</div>
-
-        <p class="signup-link">
-            ¿No tienes una cuenta? <a href="#">Regístrate ahora</a>
-        </p>
     </div>
     `;
 
-  // Toggle password visibility
   const passwordToggle = document.getElementById("passwordToggle");
   const passwordField = document.getElementById("password");
 
-  passwordToggle.addEventListener("click", function () {
-    if (passwordField.type === "password") {
-      passwordField.type = "text";
-      passwordToggle.textContent = "🙈";
-    } else {
-      passwordField.type = "password";
-      passwordToggle.textContent = "👁️";
-    }
-  });
-
   // Form validation and submission
   const loginForm = document.getElementById("loginForm");
-  const emailField = document.getElementById("email");
-  const emailError = document.getElementById("emailError");
+  const userField = document.getElementById("user");
   const passwordError = document.getElementById("passwordError");
   const successMessage = document.getElementById("successMessage");
 
@@ -116,14 +92,6 @@ export function renderLogin() {
     messageElement.style.display = "none";
   }
 
-  emailField.addEventListener("blur", function () {
-    if (!validateEmail(this.value)) {
-      showErrorMessage(this, emailError);
-    } else {
-      hideErrorMessage(this, emailError);
-    }
-  });
-
   passwordField.addEventListener("blur", function () {
     if (!validatePassword(this.value)) {
       showErrorMessage(this, passwordError);
@@ -135,13 +103,10 @@ export function renderLogin() {
   loginForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
-    // Reset previous errors
-    hideErrorMessage(emailField, emailError);
     hideErrorMessage(passwordField, passwordError);
 
     let isValid = true;
 
-    // Validate password
     if (!validatePassword(passwordField.value)) {
       showErrorMessage(passwordField, passwordError);
       isValid = false;
@@ -149,16 +114,13 @@ export function renderLogin() {
 
     if (isValid) {
       try {
-        // Llamamos a la función de Rust
-        const esValido = await authService.login(
-          emailField.value,
+        const loginResult = await authService.login(
+          userField.value,
           passwordField.value,
         );
-        console.log(esValido);
 
-        if (esValido) {
+        if (loginResult.success) {
           console.log("Acceso concedido");
-          // Aquí llamarías a tu función de navegación
           window.router.navigate("/Home");
         } else {
           errorMsg.innerText = "Usuario o contraseña incorrectos";
@@ -170,7 +132,6 @@ export function renderLogin() {
     }
   });
 
-  // Forgot password link functionality
   document
     .querySelector(".forgot-password")
     .addEventListener("click", function (e) {
@@ -178,13 +139,5 @@ export function renderLogin() {
       alert(
         "Funcionalidad de recuperación de contraseña no implementada en esta demo.",
       );
-    });
-
-  // Signup link functionality
-  document
-    .querySelector(".signup-link a")
-    .addEventListener("click", function (e) {
-      e.preventDefault();
-      alert("Redirección a página de registro no implementada en esta demo.");
     });
 }

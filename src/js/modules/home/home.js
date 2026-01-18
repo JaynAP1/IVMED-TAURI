@@ -1,4 +1,9 @@
+import { authService } from "../auth/authService.js";
+
 export function renderHome() {
+  document.getElementById("login").disabled = true;
+  document.getElementById("home").disabled = false;
+
   const content = document.getElementById("content");
   content.innerHTML = `
     <aside class="sidebar">
@@ -48,12 +53,25 @@ export function renderHome() {
                 </a>
             </nav>
 
-            <div class="user-info">
-                <div class="user-avatar">JS</div>
-                <div class="user-details">
-                    <div class="user-name">Juan Sánchez</div>
-                    <div class="user-role">Administrador</div>
-                </div>
+            <div class="user-info" id="userTrigger">
+              <div class="user-avatar">JS</div>
+              <div class="user-details">
+                  <div class="user-name">${sessionStorage.getItem("name")}</div>
+                  <div class="user-role">${sessionStorage.getItem("role")}</div>
+              </div>
+
+              <!-- User Dropdown Menu -->
+              <div class="user-dropdown" id="userDropdown">
+                  <a href="#" class="dropdown-item">
+                      <i>👤</i>
+                      <span>Ver Perfil</span>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a href="#" id="logout" class="dropdown-item">
+                      <i>🔒</i>
+                      <span>Cerrar Sesión</span>
+                  </a>
+              </div>
             </div>
         </aside>
 
@@ -155,6 +173,9 @@ export function renderHome() {
   // Mobile menu toggle
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.querySelector(".sidebar");
+  const userTrigger = document.getElementById("userTrigger");
+  const userDropdown = document.getElementById("userDropdown");
+  const logoutButton = document.getElementById("logout");
 
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener("click", function () {
@@ -176,7 +197,6 @@ export function renderHome() {
     });
   });
 
-  // Chart period selector
   const chartSelect = document.querySelector(".chart-actions select");
   if (chartSelect) {
     chartSelect.addEventListener("change", function () {
@@ -184,4 +204,31 @@ export function renderHome() {
       // In a real application, you would update the chart data here
     });
   }
+
+  userTrigger.addEventListener("click", function (e) {
+    e.stopPropagation();
+    userDropdown.classList.toggle("show");
+  });
+
+  logoutButton.addEventListener("click", async function () {
+    await authService.logout();
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", function (e) {
+    if (!userTrigger.contains(e.target)) {
+      userDropdown.classList.remove("show");
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // Force hardware acceleration for better performance on WebKit browsers
+    const elements = document.querySelectorAll(
+      ".sidebar, .main-content, .stat-card, .chart-container, .recent-activity",
+    );
+    elements.forEach((el) => {
+      el.style.webkitTransform = "translateZ(0)";
+      el.style.transform = "translateZ(0)";
+    });
+  });
 }
