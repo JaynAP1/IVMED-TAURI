@@ -25,6 +25,7 @@ fn main() {
             modules::auth::handlers::logout_user,
             modules::auth::handlers::get_current_user,
             modules::auth::handlers::verify_session,
+            modules::auth::handlers::get_modules_by_role,
             modules::auth::handlers::change_password,
             modules::auth::handlers::register_user,
             // Filesystem commands

@@ -41,6 +41,26 @@ where
     // .optional() convierte el error "QueryReturnedNoRows" en un Ok(None)
     result.optional()
 }
+pub fn fetch_all<F, T>(
+    query: &str,
+    params: &[&dyn rusqlite::ToSql],
+    mut mapper: F,
+) -> Result<Vec<T>, rusqlite::Error>
+where
+    F: FnMut(&rusqlite::Row) -> Result<T, rusqlite::Error>,
+{
+    let lock = DB_CONN.get().unwrap().lock().unwrap(); // Mutex global
+
+    let mut stmt = lock.prepare(query)?;
+    let rows = stmt.query_map(params, |row| mapper(row))?;
+
+    let mut results = Vec::new();
+    for row in rows {
+        results.push(row?);
+    }
+
+    Ok(results)
+}
 
 // Si necesitas acceso directo a la conexión para selects complejos
 pub fn access_db<F, T>(f: F) -> T

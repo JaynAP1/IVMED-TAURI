@@ -2,6 +2,7 @@ use super::models::{LoginRequest, LoginResponse, User};
 use crate::modules::storage::db;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use std::sync::Mutex;
+use std::collections::HashMap;
 use tauri::{AppHandle, Manager, State}; // Importamos el acceso, NO el init
                                         // Estado global para almacenar la sesión actual
 pub struct AuthState {
@@ -14,6 +15,23 @@ impl AuthState {
             current_user: Mutex::new(None),
         }
     }
+}
+
+#[tauri::command]
+pub fn get_modules_by_role(role: &str) -> Vec<String> {
+    if role.is_empty() {
+        return vec![];
+    }
+
+    db::fetch_all(
+        "SELECT name FROM modules WHERE role = ?1",
+        &[&role],
+        |row| {
+            let module_name: String = row.get(0)?;
+            Ok(module_name)
+        },
+    )
+    .unwrap_or_default()
 }
 
 #[tauri::command]

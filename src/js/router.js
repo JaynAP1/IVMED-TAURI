@@ -2,6 +2,9 @@ import { renderLogin } from "./modules/auth/login.js";
 import { authService } from "./modules/auth/authService.js";
 import { renderHome } from "./modules/home/home.js";
 
+
+import { renderDashboard } from "./modules/dashboard/dashboard.js";
+
 class Router {
   constructor() {
     this.routes = {
@@ -29,6 +32,15 @@ class Router {
     this.currentRoute = path;
     const render = this.routes[path];
     render();
+  }
+
+  navigateModule(moduleName) {
+    if (moduleName === "Dashboard") {
+      renderDashboard();
+    }
+    else {
+      console.log(`Módulo no implementado: ${moduleName}`);
+    }
   }
 
   init() {
