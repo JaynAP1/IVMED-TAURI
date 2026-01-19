@@ -92,4 +92,12 @@ export function renderDashboard() {
             </div>
         </div>
     `;
+
+    const chartSelect = document.querySelector(".chart-actions select");
+    if (chartSelect) {
+        chartSelect.addEventListener("change", function () {
+        console.log(`Chart period changed to: ${this.value}`);
+        // In a real application, you would update the chart data here
+        });
+    }
 }

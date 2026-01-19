@@ -54,18 +54,9 @@ export function renderHome() {
   // Mobile menu toggle
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.querySelector(".sidebar");
-  const userTrigger = document.getElementById("userTrigger");
-  const userDropdown = document.getElementById("userDropdown");
-  const logoutButton = document.getElementById("logout");
 
   // Render navigation modules
   renderModules();
-  let moduleActive = document.querySelector(".nav-item.active");
-
-  if (moduleActive) {
-    const moduleName = moduleActive.getAttribute("data-id");
-    window.router.navigateModule(moduleName);
-  }
 
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener("click", function () {
@@ -73,44 +64,6 @@ export function renderHome() {
     });
   }
 
-  // Navigation item selection
-  const navItems = document.querySelectorAll(".nav-item");
-  navItems.forEach((item) => {
-    item.addEventListener("click", function (e) {
-      e.preventDefault();
-      navItems.forEach((i) => i.classList.remove("active"));
-      this.classList.add("active");
-      window.router.navigateModule(this.getAttribute("data-id"));
-
-      // In a real application, you would load the corresponding module here
-      const moduleName = this.querySelector("span").textContent;
-      console.log(`Loading module: ${moduleName}`);
-    });
-  });
-
-  const chartSelect = document.querySelector(".chart-actions select");
-  if (chartSelect) {
-    chartSelect.addEventListener("change", function () {
-      console.log(`Chart period changed to: ${this.value}`);
-      // In a real application, you would update the chart data here
-    });
-  }
-
-  userTrigger.addEventListener("click", function (e) {
-    e.stopPropagation();
-    userDropdown.classList.toggle("show");
-  });
-
-  logoutButton.addEventListener("click", async function () {
-    await authService.logout();
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener("click", function (e) {
-    if (!userTrigger.contains(e.target)) {
-      userDropdown.classList.remove("show");
-    }
-  });
 
   document.addEventListener("DOMContentLoaded", function () {
     // Force hardware acceleration for better performance on WebKit browsers
