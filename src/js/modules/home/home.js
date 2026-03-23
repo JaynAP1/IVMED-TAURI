@@ -1,9 +1,9 @@
 import { authService } from "../auth/authService.js";
 import { renderModules } from "../../modules/navbar/navbar.js";
+import { switchPageStyle } from "../shared/cssManager.js";
 
 export function renderHome() {
-  document.getElementById("login").disabled = true;
-  document.getElementById("home").disabled = false;
+  switchPageStyle("home");
 
   const content = document.getElementById("content");
   content.innerHTML = `

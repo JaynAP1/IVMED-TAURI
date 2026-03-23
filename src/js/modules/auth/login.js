@@ -1,7 +1,8 @@
 import { authService } from "./authService.js";
+import { switchPageStyle } from "../shared/cssManager.js";
 
 export function renderLogin() {
-  document.getElementById("login").disabled = false;
+  switchPageStyle("login");
   const content = document.getElementById("content");
   content.innerHTML = `
     <div class="login-container">
@@ -32,7 +33,7 @@ export function renderLogin() {
                     type="text"
                     id="user"
                     class="input-field"
-                    placeholder="usuario1"
+                    placeholder="usuario"
                     required
                 />
             </div>

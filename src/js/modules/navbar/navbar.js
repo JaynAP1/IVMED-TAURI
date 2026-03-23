@@ -1,4 +1,5 @@
 import { api } from "../shared/api.js";
+import { authService } from "../auth/authService.js";
 
 export async function renderModules() {
     const navMenu = document.querySelector('.nav-menu');
